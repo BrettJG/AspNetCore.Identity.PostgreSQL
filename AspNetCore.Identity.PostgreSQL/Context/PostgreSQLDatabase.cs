@@ -11,95 +11,77 @@ namespace AspNetCore.Identity.PostgreSQL.Context
 {
     public class PostgreSQLDatabase
     {
-        private static NpgsqlConnection _connection;
+        //private static NpgsqlConnection _connection;
         private readonly IConfiguration _configurationRoot;
-        private static object _consulta = new object();
+        //private static object _consulta = new object();
 
         public PostgreSQLDatabase(IConfiguration configurationRoot)
         {
             _configurationRoot = configurationRoot;
             if (string.IsNullOrEmpty(IdentityDbConfig.StringConnectionName))
                 IdentityDbConfig.StringConnectionName = "PostgreSQLBaseConnection";
-            try
-            {
-                _connection = new Npgsql.NpgsqlConnection(_configurationRoot.GetConnectionString(IdentityDbConfig.StringConnectionName));
-            }
-            catch (Exception)
-            {
-                throw new Exception("Could not connect to the database.");
-            }
             
         }
 
 
         public int ExecuteSQL(string commandText, Dictionary<string, object> parameters)
-        {
-            lock (_consulta)
+        {          
+            var result = 0;
+
+            if (string.IsNullOrEmpty(commandText))
             {
-                var result = 0;
+                throw new ArgumentException("Command text cannot be null or empty.");
+            }
 
-                if (string.IsNullOrEmpty(commandText))
-                {
-                    throw new ArgumentException("Command text cannot be null or empty.");
-                }
 
-                try
+            using (var conn = CreateConnection())
+            {
+                using (var command = CreateCommand(conn, commandText, parameters))
                 {
-                    OpenConnection();
-                    var command = CreateCommand(commandText, parameters);
                     result = command.ExecuteNonQuery();
                 }
-                finally
-                {
-
-                }
-
-                return result;
             }
+                
+            return result;   
         }
 
 
         public object ExecuteQueryGetSingleObject(string commandText, Dictionary<string, object> parameters)
         {
-            lock (_consulta)
+            object result = null;
+
+            if (string.IsNullOrEmpty(commandText))
             {
-                object result = null;
+                throw new ArgumentException("Command text cannot be null or empty.");
+            }
 
-                if (string.IsNullOrEmpty(commandText))
-                {
-                    throw new ArgumentException("Command text cannot be null or empty.");
-                }
 
-                try
+            using (var conn = CreateConnection())
+            {
+                using (var command = CreateCommand(conn, commandText, parameters))
                 {
-                    OpenConnection();
-                    var command = CreateCommand(commandText, parameters);
                     result = command.ExecuteScalar();
                 }
-                finally
-                {
-                    CloseConnection();
-                }
+            }            
 
-                return result;
-            }
+            return result;            
         }
 
         public Dictionary<string, string> ExecuteQueryGetSingleRow(string commandText,
             Dictionary<string, object> parameters)
         {
-            lock (_consulta)
+    
+            Dictionary<string, string> row = null;
+            if (string.IsNullOrEmpty(commandText))
             {
-                Dictionary<string, string> row = null;
-                if (string.IsNullOrEmpty(commandText))
-                {
-                    throw new ArgumentException("Command text cannot be null or empty.");
-                }
+                throw new ArgumentException("Command text cannot be null or empty.");
+            }
 
-                try
+
+            using (var conn = CreateConnection())
+            {
+                using (var command = CreateCommand(conn, commandText, parameters))
                 {
-                    OpenConnection();
-                    var command = CreateCommand(commandText, parameters);
                     using (NpgsqlDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
@@ -115,29 +97,27 @@ namespace AspNetCore.Identity.PostgreSQL.Context
                         }
                     }
                 }
-                finally
-                {
-                    CloseConnection();
-                }
-
-                return row;
             }
+           
+
+            return row;
+            
         }
 
         public List<Dictionary<string, string>> ExecuteQuery(string commandText, Dictionary<string, object> parameters)
         {
-            lock (_consulta)
+           
+            List<Dictionary<string, string>> rows = null;
+            if (string.IsNullOrEmpty(commandText))
             {
-                List<Dictionary<string, string>> rows = null;
-                if (string.IsNullOrEmpty(commandText))
-                {
-                    throw new ArgumentException("Command text cannot be null or empty.");
-                }
+                throw new ArgumentException("Command text cannot be null or empty.");
+            }
 
-                try
+              
+            using (var conn = CreateConnection())
+            {
+                using (var command = CreateCommand(conn, commandText, parameters))
                 {
-                    OpenConnection();
-                    var command = CreateCommand(commandText, parameters);
                     using (NpgsqlDataReader reader = command.ExecuteReader())
                     {
                         rows = new List<Dictionary<string, string>>();
@@ -154,19 +134,23 @@ namespace AspNetCore.Identity.PostgreSQL.Context
                         }
                     }
                 }
-                finally
-                {
-                    CloseConnection();
-                }
-
-                return rows;
             }
+               
+
+            return rows;
         }
 
-        private NpgsqlCommand CreateCommand(string commandText, Dictionary<string, object> parameters)
+        private NpgsqlConnection CreateConnection()
+        {
+            var conn = new NpgsqlConnection(_configurationRoot.GetConnectionString(IdentityDbConfig.StringConnectionName));
+            conn.Open();
+            return conn;
+        }
+
+        private NpgsqlCommand CreateCommand(NpgsqlConnection connection, string commandText, Dictionary<string, object> parameters)
         {
 
-            NpgsqlCommand command = _connection.CreateCommand();
+            NpgsqlCommand command = connection.CreateCommand();
             command.CommandText = commandText;
             AddParameters(command, parameters);
 
@@ -203,62 +187,10 @@ namespace AspNetCore.Identity.PostgreSQL.Context
             }
         }
 
-        /// <summary>
-        ///     Helper method to return query a string value.
-        /// </summary>
-        /// <param name="commandText">The PostgreSQL query to execute.</param>
-        /// <param name="parameters">Parameters to pass to the PostgreSQL query.</param>
-        /// <returns>The string value resulting from the query.</returns>
-        private string GetStrValue(string commandText, Dictionary<string, object> parameters)
-        {
-            var value = ExecuteQueryGetSingleObject(commandText, parameters) as string;
-            return value;
-        }
 
-        /// <summary>
-        ///     Opens a connection if not open.
-        /// </summary>
-        public void OpenConnection()
-        {
+    
 
-            if (_connection == null)
-            {
-                if (string.IsNullOrEmpty(IdentityDbConfig.StringConnectionName))
-                    IdentityDbConfig.StringConnectionName = "PostgreSQLBaseConnection";
-
-                _connection =
-                    new Npgsql.NpgsqlConnection(_configurationRoot.GetConnectionString(IdentityDbConfig.StringConnectionName));
-            }
-            var retries = 20;
-            if (_connection.State == ConnectionState.Open)
-            {
-            }
-            else
-            {
-                while (retries >= 0 && _connection.State != ConnectionState.Open)
-                {
-                    lock (_consulta)
-                    {
-                        _connection.Close();
-                        _connection.Open();
-                    }
-                    retries--;
-                    Thread.Sleep(50);
-                }
-            }
-        }
-
-        /// <summary>
-        ///     Closes the connection if it is open.
-        /// </summary>
-        public void CloseConnection()
-        {
-            /*   if (_connection.State == ConnectionState.Open)
-               {
-              //     _connection.Close();
-               }*/
-        }
-
+      
         public void Dispose()
         {
 
