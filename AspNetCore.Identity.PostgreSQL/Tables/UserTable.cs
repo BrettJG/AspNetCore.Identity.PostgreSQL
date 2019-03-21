@@ -51,7 +51,7 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
         /// <param name="rows"></param>
         /// <returns></returns>
 
-        internal static TUser loadUser(Dictionary<string, string> row)
+        internal static TUser LoadUser(Dictionary<string, string> row)
         {
             if (row == null) return null;
             TUser user = null;
@@ -61,16 +61,25 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
             user.PasswordHash = string.IsNullOrEmpty(row[FieldPassword]) ? null : row[FieldPassword];
             user.SecurityStamp = string.IsNullOrEmpty(row[FieldSecurityStamp]) ? null : row[FieldSecurityStamp];
             user.Email = string.IsNullOrEmpty(row[FieldEmail]) ? null : row[FieldEmail];
-            user.EmailConfirmed = row[FieldEmailConfirmed] == "True";
+            user.EmailConfirmed = GetValue(row[FieldEmailConfirmed]);
             user.PhoneNumber = string.IsNullOrEmpty(row[FieldPhoneNumber]) ? null : row[FieldPhoneNumber];
-            user.PhoneNumberConfirmed = row[FieldPhoneNumberConfirmed] == "1" ? true : false;
-            user.LockoutEnabled = row[FieldLockoutEnabled] == "1" ? true : false;
+            user.PhoneNumberConfirmed = GetValue(row[FieldPhoneNumberConfirmed]);
+            user.LockoutEnabled = GetValue(row[FieldLockoutEnabled]);
             user.LockoutEnd = string.IsNullOrEmpty(row[FieldLockoutEndDate]) ? DateTime.Now : DateTime.Parse(row[FieldLockoutEndDate]);
             user.AccessFailedCount = string.IsNullOrEmpty(row[FieldAccessFailedCount]) ? 0 : int.Parse(row[FieldAccessFailedCount]);
-            user.TwoFactorEnabled = row[FieldTwoFactorEnabled] == "1" ? true : false;
+            user.TwoFactorEnabled = GetValue(row[FieldTwoFactorEnabled]);
 
             return user;
 
+        }
+
+        private static bool GetValue(string value)
+        {
+            if (bool.TryParse(value, out bool result))
+            {
+                return result;
+            }
+            return false;
         }
 
 
@@ -114,7 +123,7 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
             Dictionary<string, object> parameters = new Dictionary<string, object>() { { "@id", userId } };
 
             var row = _database.ExecuteQueryGetSingleRow(commandText, parameters);
-            return loadUser(row);
+            return LoadUser(row);
         }
 
 
@@ -132,7 +141,7 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
             Dictionary<string, object> parameters = new Dictionary<string, object>() { { "@name", userName } };
 
             var row = _database.ExecuteQueryGetSingleRow(commandText, parameters);
-            return loadUser(row);
+            return LoadUser(row);
         }
 
         /// <summary>
@@ -151,7 +160,7 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
 
             var row = _database.ExecuteQueryGetSingleRow(commandText, parameters);
 
-            return loadUser(row);
+            return LoadUser(row);
         }
 
         /// <summary>
