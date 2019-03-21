@@ -126,7 +126,7 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
             parameters.Add("ClaimValue", claim.Value);
 
             var rows = _database.ExecuteQuery(commandText, parameters);
-            var list = rows.Select(row => UserTable<IdentityUser>.loadUser(row)).ToList();
+            var list = rows.Select(row => UserTable<IdentityUser>.LoadUser(row)).ToList();
 
             return list;
         }
