@@ -65,7 +65,7 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
             user.PhoneNumber = string.IsNullOrEmpty(row[FieldPhoneNumber]) ? null : row[FieldPhoneNumber];
             user.PhoneNumberConfirmed = GetValue(row[FieldPhoneNumberConfirmed]);
             user.LockoutEnabled = GetValue(row[FieldLockoutEnabled]);
-            user.LockoutEnd = string.IsNullOrEmpty(row[FieldLockoutEndDate]) ? DateTime.Now : DateTime.Parse(row[FieldLockoutEndDate]);
+            user.LockoutEnd = string.IsNullOrEmpty(row[FieldLockoutEndDate]) ? DateTime.UtcNow : DateTime.Parse(row[FieldLockoutEndDate]);
             user.AccessFailedCount = string.IsNullOrEmpty(row[FieldAccessFailedCount]) ? 0 : int.Parse(row[FieldAccessFailedCount]);
             user.TwoFactorEnabled = GetValue(row[FieldTwoFactorEnabled]);
 
