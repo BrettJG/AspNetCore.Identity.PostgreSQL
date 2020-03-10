@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using Npgsql;
@@ -45,6 +46,19 @@ namespace AspNetCore.Identity.PostgreSQL.Context
             return result;   
         }
 
+        public async Task<int> ExecuteSQLAsync(string commandText, Dictionary<string, object> parameters)
+        {
+            if (string.IsNullOrEmpty(commandText))
+                throw new ArgumentException("Command text cannot be null or empty.");
+            
+            using (var conn = CreateConnection())
+            {
+                using (var command = CreateCommand(conn, commandText, parameters))
+                {
+                    return await command.ExecuteNonQueryAsync();
+                }
+            }
+        }
 
         public object ExecuteQueryGetSingleObject(string commandText, Dictionary<string, object> parameters)
         {
@@ -102,6 +116,20 @@ namespace AspNetCore.Identity.PostgreSQL.Context
 
             return row;
             
+        }
+
+        public async Task<IDataReader> ExecuteQueryAsync(string commandText, Dictionary<string, object> parameters)
+        {
+            if (string.IsNullOrEmpty(commandText))
+                throw new ArgumentException("Command text cannot be null or empty.");
+
+            using (var conn = CreateConnection())
+            {
+                using (var command = CreateCommand(conn, commandText, parameters))
+                {
+                    return await command.ExecuteReaderAsync();
+                }
+            }
         }
 
         public List<Dictionary<string, string>> ExecuteQuery(string commandText, Dictionary<string, object> parameters)

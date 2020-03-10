@@ -25,6 +25,8 @@ namespace AspNetCore.Identity.PostgreSQL.Stores
         IUserLockoutStore<TUser>,
         IUserPhoneNumberStore<TUser>,
         IQueryableUserStore<TUser>,
+        IUserAuthenticationTokenStore<TUser>,
+        IUserAuthenticatorKeyStore<TUser>,
         IUserTwoFactorStore<TUser> where TUser : IdentityUser
     {
         private readonly UserTable<TUser> _userTable;
@@ -32,6 +34,8 @@ namespace AspNetCore.Identity.PostgreSQL.Stores
         private readonly UserRolesTable _userRolesTable;
         private readonly UserClaimsTable _userClaimsTable;
         private readonly UserLoginsTable _userLoginsTable;
+        private readonly UserTokenTable<Guid> _userTokensTable;
+        
         private readonly PostgreSQLDatabase _database;
 
 
@@ -54,6 +58,8 @@ namespace AspNetCore.Identity.PostgreSQL.Stores
             _userRolesTable = new UserRolesTable(_database);
             _userClaimsTable = new UserClaimsTable(_database);
             _userLoginsTable = new UserLoginsTable(_database);
+            _userTokensTable = new UserTokenTable<Guid>(_database);
+
         }
 
         private bool _disposed;
@@ -1127,6 +1133,107 @@ namespace AspNetCore.Identity.PostgreSQL.Stores
         {
             return GetClaimsAsync(user, cancellationToken);
         }
+
+
+        #region IUserAuthenticatorKeyStore
+
+        private const string InternalLoginProvider = "[AspNetUserStore]";
+        private const string AuthenticatorKeyTokenName = "AuthenticatorKey";
+
+
+        public Task SetAuthenticatorKeyAsync(TUser user, string key, CancellationToken cancellationToken)
+            => SetTokenAsync(user, InternalLoginProvider, AuthenticatorKeyTokenName, key, cancellationToken);
+
+        /// <summary>
+        /// Sets the token value for a particular user.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="loginProvider">The authentication provider for the token.</param>
+        /// <param name="name">The name of the token.</param>
+        /// <param name="value">The value of the token.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
+        public virtual async Task SetTokenAsync(TUser user, string loginProvider, string name, string value, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+
+            var token = await _userTokensTable.FindUserTokenAsync(user, loginProvider, name);
+            if (token == null)
+            {
+                token  = new IdentityUserToken<Guid>() { UserId = user.Id, LoginProvider = loginProvider, Name = name, Value = value };
+                await _userTokensTable.AddUserTokenAsync(token);
+            }
+            else
+            {
+                token.Value = value;
+            }
+        }
+
+
+
+
+        /// <summary>
+        /// Get the authenticator key for the specified <paramref name="user" />.
+        /// </summary>
+        /// <param name="user">The user whose security stamp should be set.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the security stamp for the specified <paramref name="user"/>.</returns>
+        public virtual Task<string> GetAuthenticatorKeyAsync(TUser user, CancellationToken cancellationToken)
+            => GetTokenAsync(user, InternalLoginProvider, AuthenticatorKeyTokenName, cancellationToken);
+
+
+        /// <summary>
+        /// Returns the token value.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="loginProvider">The authentication provider for the token.</param>
+        /// <param name="name">The name of the token.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
+        public async Task<string> GetTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+            var entry = await _userTokensTable.FindUserTokenAsync(user, loginProvider, name);
+            return entry?.Value;
+        }
+
+        /// <summary>
+        /// Deletes a token for a user.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="loginProvider">The authentication provider for the token.</param>
+        /// <param name="name">The name of the token.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
+        public async Task RemoveTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+            var entry = await _userTokensTable.FindUserTokenAsync(user, loginProvider, name);
+            if (entry != null)
+            {
+                await _userTokensTable.RemoveUserTokenAsync(entry);
+            }
+        }
+
+        #endregion  
 
         public IQueryable<TUser> Users { get; }
     }

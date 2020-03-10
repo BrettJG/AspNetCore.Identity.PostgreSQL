@@ -1,4 +1,4 @@
-﻿CREATE TABLE public."AspNetRoles" (
+﻿CREATE TABLE IF NOT EXISTS public."AspNetRoles" (
   "Id" VARCHAR(128) NOT NULL,
   "Name" TEXT NOT NULL,
   "ConcurrencyStamp" TEXT,
@@ -6,7 +6,7 @@
 ) 
 WITH (oids = false);
 
-CREATE TABLE public."AspNetUsers" (
+CREATE TABLE IF NOT EXISTS public."AspNetUsers" (
   "Id" UUID NOT NULL,
   "UserName" TEXT NOT NULL,
   "PasswordHash" TEXT,
@@ -25,7 +25,7 @@ CREATE TABLE public."AspNetUsers" (
 WITH (oids = false);
 
 
-CREATE TABLE public."AspNetUserClaims" (
+CREATE TABLE IF NOT EXISTS public."AspNetUserClaims" (
   "Id" SERIAL,
   "ClaimType" TEXT,
   "ClaimValue" TEXT,
@@ -40,7 +40,7 @@ CREATE TABLE public."AspNetUserClaims" (
 WITH (oids = false);
 
 
-CREATE TABLE public."AspNetUserLogins" (
+CREATE TABLE IF NOT EXISTS public."AspNetUserLogins" (
   "UserId" UUID NOT NULL,
   "LoginProvider" TEXT NOT NULL,
   "ProviderKey" TEXT NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE public."AspNetUserLogins" (
 WITH (oids = false);
 
 
-CREATE TABLE public."AspNetUserRoles" (
+CREATE TABLE IF NOT EXISTS public."AspNetUserRoles" (
   "UserId" UUID NOT NULL,
   "RoleId" VARCHAR(128) NOT NULL,
   CONSTRAINT "AspNetUserRoles_pkey" PRIMARY KEY("UserId", "RoleId"),
@@ -71,6 +71,24 @@ CREATE TABLE public."AspNetUserRoles" (
     NOT DEFERRABLE
 ) 
 WITH (oids = false);
+
+
+CREATE TABLE IF NOT EXISTS public."AspNetUserTokens" (
+    "UserId"        UUID NOT NULL,
+    "LoginProvider" NVARCHAR (128) NOT NULL,
+    "Name"          NVARCHAR (128) NOT NULL,
+    "Value"         NVARCHAR (MAX) NULL,
+    CONSTRAINT "AspNetUserTokens_PK" PRIMARY KEY("UserId", "LoginProvider", "Name"),
+    CONSTRAINT "FK_AspNetUserTokens_AspNetUsers" FOREIGN KEY ("UserId")
+     REFERENCES public."AspNetUsers"("Id")
+     ON DELETE CASCADE
+     ON UPDATE NO ACTION
+     NOT DEFERRABLE
+)
+WITH (oids = false);
+
+
+
 
 CREATE INDEX "IX_AspNetUserRoles_RoleId" ON public."AspNetUserRoles"
   USING btree ("RoleId" COLLATE pg_catalog."default");
