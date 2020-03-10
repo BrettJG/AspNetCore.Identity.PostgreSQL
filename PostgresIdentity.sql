@@ -75,9 +75,9 @@ WITH (oids = false);
 
 CREATE TABLE IF NOT EXISTS public."AspNetUserTokens" (
     "UserId"        UUID NOT NULL,
-    "LoginProvider" NVARCHAR (128) NOT NULL,
-    "Name"          NVARCHAR (128) NOT NULL,
-    "Value"         NVARCHAR (MAX) NULL,
+    "LoginProvider" VARCHAR (128) NOT NULL,
+    "Name"          VARCHAR (128) NOT NULL,
+    "Value"         TEXT NULL,
     CONSTRAINT "AspNetUserTokens_PK" PRIMARY KEY("UserId", "LoginProvider", "Name"),
     CONSTRAINT "FK_AspNetUserTokens_AspNetUsers" FOREIGN KEY ("UserId")
      REFERENCES public."AspNetUsers"("Id")
@@ -90,12 +90,12 @@ WITH (oids = false);
 
 
 
-CREATE INDEX "IX_AspNetUserRoles_RoleId" ON public."AspNetUserRoles"
+CREATE INDEX IF NOT EXISTS  "IX_AspNetUserRoles_RoleId" ON public."AspNetUserRoles"
   USING btree ("RoleId" COLLATE pg_catalog."default");
 
-CREATE INDEX "IX_AspNetUserRoles_UserId" ON public."AspNetUserRoles"
+CREATE INDEX IF NOT EXISTS  "IX_AspNetUserRoles_UserId" ON public."AspNetUserRoles"
   USING btree ("UserId");
 
-CREATE INDEX "IX_AspNetUserClaims_UserId"	ON "AspNetUserClaims"	("UserId");
-CREATE INDEX "IX_AspNetUserLogins_UserId"	ON "AspNetUserLogins"	("UserId");
+CREATE INDEX IF NOT EXISTS  "IX_AspNetUserClaims_UserId"	ON "AspNetUserClaims"	("UserId");
+CREATE INDEX IF NOT EXISTS  "IX_AspNetUserLogins_UserId"	ON "AspNetUserLogins"	("UserId");
 

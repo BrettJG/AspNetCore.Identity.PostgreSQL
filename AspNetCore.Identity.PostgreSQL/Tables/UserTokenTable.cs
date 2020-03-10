@@ -43,9 +43,9 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
 
         public async Task<IdentityUserToken<T>> FindUserTokenAsync(IdentityUser user, string loginProvider, string name)
         {
-            var sqlCommand = $"SELECT UserId, LoginProvider, Name, Value FROM \"{_tableName}\" WHERE \"UserId\" = @UserId AND \"LoginProvider\" = @LoginProvider AND \"Name\" = @Name";
+            var sqlCommand = $"SELECT \"UserId\", \"LoginProvider\", \"Name\", \"Value\" FROM \"{_tableName}\" WHERE \"UserId\" = @UserId AND \"LoginProvider\" = @LoginProvider AND \"Name\" = @Name";
             var sqlParams = new Dictionary<string, object>();
-            sqlParams.Add("UserId", user);
+            sqlParams.Add("UserId", user.Id);
             sqlParams.Add("LoginProvider", loginProvider);
             sqlParams.Add("Name", name);
 
