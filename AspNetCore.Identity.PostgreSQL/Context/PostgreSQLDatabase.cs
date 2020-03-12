@@ -118,19 +118,41 @@ namespace AspNetCore.Identity.PostgreSQL.Context
             
         }
 
-        public async Task<IDataReader> ExecuteQueryAsync(string commandText, Dictionary<string, object> parameters)
+        public async Task<Dictionary<string, object>> ExecuteQueryGetSingleRowAsync(string commandText,
+            Dictionary<string, object> parameters)
         {
+
+            Dictionary<string, object> row = null;
             if (string.IsNullOrEmpty(commandText))
+            {
                 throw new ArgumentException("Command text cannot be null or empty.");
+            }
+
 
             using (var conn = CreateConnection())
             {
                 using (var command = CreateCommand(conn, commandText, parameters))
                 {
-                    return await command.ExecuteReaderAsync();
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (reader.Read())
+                        {
+                            row = new Dictionary<string, object>();
+                            for (var i = 0; i < reader.FieldCount; i++)
+                            {
+                                var columnName = reader.GetName(i);
+                                var columnValue = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                row.Add(columnName, columnValue);
+                            }
+                            break;
+                        }
+                    }
                 }
             }
+
+            return row;
         }
+
 
         public List<Dictionary<string, string>> ExecuteQuery(string commandText, Dictionary<string, object> parameters)
         {

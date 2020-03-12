@@ -49,20 +49,19 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
             sqlParams.Add("LoginProvider", loginProvider);
             sqlParams.Add("Name", name);
 
-            using (var reader = await _database.ExecuteQueryAsync(sqlCommand, sqlParams))
+            var row = await _database.ExecuteQueryGetSingleRowAsync(sqlCommand, sqlParams);
+
+            if (row != null)
             {
-                while (reader.Read())
-                {
-                    var token = new IdentityUserToken<T>();
-                    token.LoginProvider = reader[nameof(token.LoginProvider)].ToString();
-                    token.Name = reader[nameof(token.Name)].ToString();
-                    token.UserId = (T)Convert.ChangeType(reader[nameof(token.UserId)].ToString(), typeof(T));
-                    token.Value = reader[nameof(token.Value)].ToString();
+                var token = new IdentityUserToken<T>();
+                token.LoginProvider = row[nameof(token.LoginProvider)].ToString();
+                token.Name = row[nameof(token.Name)].ToString();
+                token.UserId = (T)Convert.ChangeType(row[nameof(token.UserId)], typeof(T));
+                token.Value = row[nameof(token.Value)].ToString();
 
-                    return token;
-                }
+                return token;
             }
-
+            
             return null;
         }
     }
