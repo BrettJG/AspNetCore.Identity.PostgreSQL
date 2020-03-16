@@ -1174,6 +1174,7 @@ namespace AspNetCore.Identity.PostgreSQL.Stores
             else
             {
                 token.Value = value;
+                await _userTokensTable.UpdateUserTokenAsync(token);
             }
         }
 

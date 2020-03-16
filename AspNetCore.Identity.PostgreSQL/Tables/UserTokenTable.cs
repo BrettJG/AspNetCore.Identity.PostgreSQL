@@ -30,6 +30,19 @@ namespace AspNetCore.Identity.PostgreSQL.Tables
             return await _database.ExecuteSQLAsync(sqlCommand, sqlParams);
         }
 
+        public async Task<int> UpdateUserTokenAsync(IdentityUserToken<T> token)
+        {
+            var sqlCommand = $"UPDATE \"{_tableName}\" SET \"Value\" = @Value WHERE \"UserId\" = @UserId AND \"LoginProvider\" = @LoginProvider AND \"Name\" = @Name";
+            var sqlParams = new Dictionary<string, object>();
+            sqlParams.Add("UserId", token.UserId);
+            sqlParams.Add("LoginProvider", token.LoginProvider);
+            sqlParams.Add("Name", token.Name);
+            sqlParams.Add("Value", token.Value);
+
+            return await _database.ExecuteSQLAsync(sqlCommand, sqlParams);
+
+        }
+
         public async Task<int> RemoveUserTokenAsync(IdentityUserToken<T> token)
         {
             var sqlCommand = $"DELETE FROM \"{_tableName}\" WHERE \"UserId\" = @UserId AND \"LoginProvider\" = @LoginProvider AND \"Name\" = @Name ";
